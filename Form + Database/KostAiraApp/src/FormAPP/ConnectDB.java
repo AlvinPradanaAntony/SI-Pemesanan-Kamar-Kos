@@ -5,12 +5,22 @@
  */
 package FormAPP;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.net.URL;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -21,6 +31,12 @@ import javax.swing.JOptionPane;
  */
 public class ConnectDB {
 
+    private static final String DEFAULT_DB_URL = "jdbc:mysql://kostaira-db-kostaira.h.aivencloud.com:16031/defaultdb";
+    private static final String DEFAULT_DB_USER = "avnadmin";
+    private static final String DEFAULT_DB_SSL = "true";
+    private static final String DEFAULT_SSL_CA_PATH = "ca.pem";
+    private static final String TRUSTSTORE_PASSWORD = "kostaira-ca";
+
     Connection con; //---> Interface penyedia method utk menghubungi database
     PreparedStatement pst;
     ResultSet rs; //---> untuk menyimpan hasil proses query kedalam database
@@ -30,14 +46,140 @@ public class ConnectDB {
         try {
             //konstruktor koneksi
             Class.forName("com.mysql.jdbc.Driver");
-            con = DriverManager.getConnection("jdbc:mysql://localhost/kostaira", "root", "");
+            Properties config = loadDatabaseConfig();
+            String url = getConfigValue(config, "db.url", "KOSTAIRA_DB_URL", DEFAULT_DB_URL);
+            String user = getConfigValue(config, "db.user", "KOSTAIRA_DB_USER", DEFAULT_DB_USER);
+            String password = getConfigValue(config, "db.password", "KOSTAIRA_DB_PASSWORD", "");
+            boolean sslEnabled = Boolean.parseBoolean(getConfigValue(config, "db.ssl", "KOSTAIRA_DB_SSL", DEFAULT_DB_SSL));
+            String sslCaPath = getConfigValue(config, "db.ssl.ca.path", "KOSTAIRA_DB_SSL_CA_PATH", DEFAULT_SSL_CA_PATH);
+
+            Properties connectionProperties = new Properties();
+            connectionProperties.setProperty("user", user);
+            connectionProperties.setProperty("password", password);
+            configureSslCertificate(connectionProperties, sslEnabled, sslCaPath);
+
+            con = DriverManager.getConnection(url, connectionProperties);
             System.out.println("Koneksi Berhasil");
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
             System.out.println(ex.getMessage());
 //            Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private Properties loadDatabaseConfig() {
+        Properties config = new Properties();
+        loadPropertiesIfExists(config, new File("db.properties"));
+
+        try {
+            File appDir = new File(ConnectDB.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
+            if (appDir != null) {
+                loadPropertiesIfExists(config, new File(appDir, "db.properties"));
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(ConnectDB.class.getName()).log(Level.FINE, null, ex);
+        }
+
+        return config;
+    }
+
+    private void loadPropertiesIfExists(Properties config, File file) {
+        if (file == null || !file.isFile()) {
+            return;
+        }
+
+        try (FileInputStream input = new FileInputStream(file)) {
+            config.load(input);
+        } catch (IOException ex) {
+            Logger.getLogger(ConnectDB.class.getName()).log(Level.WARNING, "Gagal membaca db.properties", ex);
+        }
+    }
+
+    private String getConfigValue(Properties config, String propertyName, String environmentName, String defaultValue) {
+        String value = System.getenv(environmentName);
+        if (value == null || value.trim().isEmpty()) {
+            value = config.getProperty(propertyName);
+        }
+        if (value == null || value.trim().isEmpty()) {
+            value = defaultValue;
+        }
+        return value.trim();
+    }
+
+    private void configureSslCertificate(Properties connectionProperties, boolean sslEnabled, String sslCaPath) throws Exception {
+        if (!sslEnabled) {
+            connectionProperties.setProperty("useSSL", "false");
+            connectionProperties.setProperty("requireSSL", "false");
+            connectionProperties.setProperty("verifyServerCertificate", "false");
+            return;
+        }
+
+        connectionProperties.setProperty("useSSL", "true");
+        connectionProperties.setProperty("requireSSL", "true");
+
+        File caCertificate = findFile(sslCaPath);
+        if (caCertificate == null) {
+            connectionProperties.setProperty("verifyServerCertificate", "false");
+            Logger.getLogger(ConnectDB.class.getName()).log(Level.WARNING, "CA certificate tidak ditemukan. Koneksi tetap memakai SSL, tetapi server certificate tidak diverifikasi.");
+            return;
+        }
+
+        File trustStore = createTrustStoreFromCertificate(caCertificate);
+        URL trustStoreUrl = trustStore.toURI().toURL();
+
+        connectionProperties.setProperty("verifyServerCertificate", "true");
+        connectionProperties.setProperty("trustCertificateKeyStoreUrl", trustStoreUrl.toString());
+        connectionProperties.setProperty("trustCertificateKeyStorePassword", TRUSTSTORE_PASSWORD);
+    }
+
+    private File findFile(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            return null;
+        }
+
+        File file = new File(path.trim());
+        if (file.isFile()) {
+            return file;
+        }
+
+        try {
+            File appDir = new File(ConnectDB.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
+            if (appDir != null) {
+                file = new File(appDir, path.trim());
+                if (file.isFile()) {
+                    return file;
+                }
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(ConnectDB.class.getName()).log(Level.FINE, null, ex);
+        }
+
+        return null;
+    }
+
+    private File createTrustStoreFromCertificate(File caCertificate) throws Exception {
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        Certificate certificate;
+
+        try (InputStream input = new FileInputStream(caCertificate)) {
+            certificate = certificateFactory.generateCertificate(input);
+        }
+
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("aiven-ca", certificate);
+
+        File trustStore = File.createTempFile("kostaira-aiven-ca-", ".jks");
+        trustStore.deleteOnExit();
+
+        try (FileOutputStream output = new FileOutputStream(trustStore)) {
+            keyStore.store(output, TRUSTSTORE_PASSWORD.toCharArray());
+        }
+
+        return trustStore;
     }
 
     public void insertDB0(String IdBooking, String KodeKamar, String id_cust, String TglMasuk, String LamaSewa, String TglKeluar, String kode_pembayaran, String TotalHarga) {

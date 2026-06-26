@@ -1,0 +1,5 @@
+db.url=jdbc:mysql://kostaira-db-kostaira.h.aivencloud.com:16031/defaultdb
+db.user=avnadmin
+db.password=ISI_PASSWORD_AIVEN_DI_SINI
+db.ssl=true
+db.ssl.ca.path=../Backup Database/ca.pem
