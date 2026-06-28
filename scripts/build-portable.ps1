@@ -163,7 +163,9 @@ $jpackageArguments = @(
     "--vendor", "KostAira",
     "--app-version", $normalizedVersion,
     "--description", "Sistem Informasi Pemesanan Kamar Kos",
-    "--java-options", "-Dfile.encoding=UTF-8"
+    "--java-options", "-Dfile.encoding=UTF-8",
+    "--java-options", "--add-opens=java.base/java.lang=ALL-UNNAMED",
+    "--java-options", "--add-opens=java.base/java.util=ALL-UNNAMED"
 )
 
 # ============================================================
