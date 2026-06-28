@@ -40,7 +40,7 @@ public class Daftar extends javax.swing.JFrame {
     int xy, xx;
 
     private void iconApp() {
-        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/ico2.png")));
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/LOGOKOST.png")));
     }
 
     private void LblLength(JTextField txt, int length) {

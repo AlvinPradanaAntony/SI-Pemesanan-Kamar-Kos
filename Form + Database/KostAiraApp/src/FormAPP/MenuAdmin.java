@@ -232,7 +232,7 @@ public class MenuAdmin extends javax.swing.JFrame {
     }
 
     private void iconApp() {
-        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/ico2.png")));
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/LOGOKOST.png")));
     }
 
     private void setColorText(JLabel label) {
@@ -1809,7 +1809,7 @@ public class MenuAdmin extends javax.swing.JFrame {
             }
         });
 
-        ico_beranda.setIcon(new javax.swing.ImageIcon(getClass().getResource("/SI_AiraKost_Asset/Icon_1_30px_P.png"))); // NOI18N
+        ico_beranda.setIcon(new javax.swing.ImageIcon(getClass().getResource("/SI_AiraKost_Asset/icon_1_30px_P.png"))); // NOI18N
 
         Lbl_beranda.setFont(new java.awt.Font("Segoe UI", 1, 16)); // NOI18N
         Lbl_beranda.setForeground(new java.awt.Color(255, 255, 255));

@@ -14,6 +14,8 @@ dan pemesanan kamar kos secara online maupun langsung oleh pengelola.
 
 - Memperbaiki proses login pada paket native yang dapat berhenti di panel
   loader ketika autentikasi atau pembukaan dashboard mengalami error.
+- Memperbaiki kapitalisasi path ikon dashboard yang bekerja di NetBeans pada
+  Windows tetapi tidak ditemukan setelah resource dikemas ke dalam JAR.
 - Memulihkan form login dan menampilkan pesan error yang jelas apabila koneksi
   database, autentikasi, atau inisialisasi dashboard gagal.
 - Menjalankan autentikasi di background dengan `SwingWorker` agar antarmuka
@@ -21,6 +23,8 @@ dan pemesanan kamar kos secara online maupun langsung oleh pengelola.
 
 ### Changed
 
+- Menggunakan `LOGOKOST.png` sebagai ikon installer, executable/shortcut, dan
+  jendela aplikasi pada Windows, Linux, dan macOS.
 - Menggabungkan autentikasi dan pengambilan profil pengguna dalam satu prepared
   query untuk mengurangi query berulang dan mencegah SQL injection.
 - Menambahkan validasi kolom login, penanganan hak akses yang tidak dikenali,

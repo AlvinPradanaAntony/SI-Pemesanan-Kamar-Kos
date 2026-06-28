@@ -19,9 +19,14 @@ $inputRoot = Join-Path $buildRoot "input"
 $artifactRoot = Join-Path $repositoryRoot $OutputDirectory
 $absoluteLayoutJar = Join-Path $dependencyRoot "AbsoluteLayout-RELEASE300.jar"
 $applicationJar = Join-Path $inputRoot "KostAiraApp.jar"
+$applicationIconSource = Join-Path $sourceRoot "SI_AiraKost_Asset/LOGOKOST.png"
 
 if (-not (Test-Path $sourceRoot)) {
     throw "Folder source tidak ditemukan: $sourceRoot"
+}
+
+if (-not (Test-Path $applicationIconSource)) {
+    throw "Icon aplikasi tidak ditemukan: $applicationIconSource"
 }
 
 foreach ($command in @("javac", "jar", "jpackage")) {
@@ -90,6 +95,65 @@ if (Test-Path $buildRoot) {
 }
 
 New-Item -ItemType Directory -Force -Path $classesRoot, $dependencyRoot, $inputRoot, $artifactRoot | Out-Null
+
+if ($IsWindows) {
+    Add-Type -AssemblyName System.Drawing
+    $packageIcon = Join-Path $buildRoot "KostAiraApp.ico"
+    $sourceImage = [System.Drawing.Image]::FromFile($applicationIconSource)
+    $iconBitmap = New-Object System.Drawing.Bitmap 256, 256
+    $graphics = [System.Drawing.Graphics]::FromImage($iconBitmap)
+
+    try {
+        $graphics.Clear([System.Drawing.Color]::Transparent)
+        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $graphics.DrawImage($sourceImage, 0, 0, 256, 256)
+        $iconHandle = $iconBitmap.GetHicon()
+        $icon = [System.Drawing.Icon]::FromHandle($iconHandle)
+        $iconStream = [System.IO.File]::Create($packageIcon)
+        try {
+            $icon.Save($iconStream)
+        } finally {
+            $iconStream.Dispose()
+            $icon.Dispose()
+        }
+    } finally {
+        $graphics.Dispose()
+        $iconBitmap.Dispose()
+        $sourceImage.Dispose()
+    }
+} elseif ($IsMacOS) {
+    $iconSet = Join-Path $buildRoot "KostAiraApp.iconset"
+    $packageIcon = Join-Path $buildRoot "KostAiraApp.icns"
+    New-Item -ItemType Directory -Force -Path $iconSet | Out-Null
+
+    $iconSizes = @{
+        "icon_16x16.png" = 16
+        "icon_16x16@2x.png" = 32
+        "icon_32x32.png" = 32
+        "icon_32x32@2x.png" = 64
+        "icon_128x128.png" = 128
+        "icon_128x128@2x.png" = 256
+        "icon_256x256.png" = 256
+        "icon_256x256@2x.png" = 512
+        "icon_512x512.png" = 512
+        "icon_512x512@2x.png" = 1024
+    }
+
+    foreach ($iconFile in $iconSizes.GetEnumerator()) {
+        & sips -z $iconFile.Value $iconFile.Value $applicationIconSource `
+            --out (Join-Path $iconSet $iconFile.Key) | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Gagal membuat icon macOS: $($iconFile.Key)"
+        }
+    }
+
+    & iconutil -c icns $iconSet -o $packageIcon
+    if ($LASTEXITCODE -ne 0) {
+        throw "Gagal membuat file icon macOS."
+    }
+} else {
+    $packageIcon = $applicationIconSource
+}
 
 Invoke-WebRequest `
     -Uri "https://repo1.maven.org/maven2/org/netbeans/external/AbsoluteLayout/RELEASE300/AbsoluteLayout-RELEASE300.jar" `
@@ -162,6 +226,7 @@ $jpackageArguments = @(
     "--dest", $artifactRoot,
     "--vendor", "KostAira",
     "--app-version", $normalizedVersion,
+    "--icon", $packageIcon,
     "--description", "Sistem Informasi Pemesanan Kamar Kos",
     "--java-options", "-Dfile.encoding=UTF-8",
     "--java-options", "--add-opens=java.base/java.lang=ALL-UNNAMED",

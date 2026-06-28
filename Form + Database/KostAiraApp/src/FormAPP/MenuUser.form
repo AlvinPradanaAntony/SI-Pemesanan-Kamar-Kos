@@ -947,7 +947,7 @@
                 <Component class="javax.swing.JLabel" name="ico_beranda">
                   <Properties>
                     <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                      <Image iconType="3" name="/SI_AiraKost_Asset/Icon_1_30px_P.png"/>
+                      <Image iconType="3" name="/SI_AiraKost_Asset/icon_1_30px_P.png"/>
                     </Property>
                   </Properties>
                 </Component>

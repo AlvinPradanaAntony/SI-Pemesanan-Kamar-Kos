@@ -37,7 +37,7 @@ public class LoginMini extends javax.swing.JFrame {
     private boolean loginInProgress;
 
     private void iconApp() {
-        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/ico2.png")));
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/LOGOKOST.png")));
     }
     
     private void loginUser() {
