@@ -8,11 +8,13 @@ package FormAPP;
 import static FormAPP.MenuUser.NamaUser2;
 import static FormAPP.MenuUser.*;
 import java.awt.Toolkit;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import static FormAPP.MenuAdmin.lbl_NamaUser1;
 
 /**
@@ -32,69 +34,115 @@ public class LoginMini extends javax.swing.JFrame {
 
     }
     int xy, xx;
+    private boolean loginInProgress;
 
     private void iconApp() {
         setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/SI_AiraKost_Asset/ico2.png")));
     }
     
     private void loginUser() {
+        if (loginInProgress) {
+            return;
+        }
+
+        final String username = UserField.getText().trim();
+        final String password = new String(PassField.getPassword());
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username dan password wajib diisi.",
+                    "Peringatan", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        loginInProgress = true;
         LoginMini.setVisible(false);
         LoginMini.setEnabled(false);
         loader.setVisible(true);
         loader.setEnabled(true);
-        new java.util.Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    String username, password;
-                    username = UserField.getText();
-                    password = PassField.getText();
-                    ConnectDB konek = new ConnectDB();
-                    ResultSet rs = konek.conLogin(username, password);
-                    ResultSet rs2 = konek.gabungDB(username);
-                    if (rs.next()) {
-                        if ("Admin".equals(rs.getString("akses"))) {
-                            MenuAdmin ad = new MenuAdmin();
-                            ad.show();
-                            lbl_NamaUser1.setText(rs.getString("username"));
 
-                        } else if ("User".equals(rs.getString("akses"))) {
-                            MenuUser usr = new MenuUser();
-                            usr.show();
-                            try {
-                                rs2.next();
-                                NamaUser2.setText(rs2.getString("NamaLengkap"));
-                                MenuUser.txtIdCust.setText(rs2.getString("id_cust"));
-                                MenuUser.txtNoKTP.setText(rs2.getString("NoKTP"));
-                                MenuUser.txtNoKTP.setEnabled(false);
-                                MenuUser.nm_lengkap.setText(rs2.getString("NamaLengkap"));
-                                MenuUser.nm_lengkap.setEnabled(false);
-                                MenuUser.txtAlamat.setText(rs2.getString("Alamat"));
-                                MenuUser.txtAlamat.setEnabled(true);
-                                MenuUser.txtJenisKelamin.setText(rs2.getString("JenisKelamin"));
-                                MenuUser.txtJenisKelamin.setEnabled(false);
-                                MenuUser.txtNoHP.setText(rs2.getString("NoHpPribadi"));
-                                MenuUser.txtNoHP.setEnabled(true);
-                                MenuUser.txtNoDarurat.setText(rs2.getString("NoHpDarurat"));
-                                MenuUser.txtNoDarurat.setEnabled(true);
-                            } catch (SQLException ex) {
-                                JOptionPane.showMessageDialog(null, ex.getMessage());
-                            }
-                        }
-                        dispose();
-                    } else {
-                        loader.setVisible(false);
-                        loader.setEnabled(false);
-                        LoginMini.setVisible(true);
-                        LoginMini.setEnabled(true);
-                        JOptionPane.showMessageDialog(null, "Username/Password Salah atau Kosong !!!", "Peringatan", JOptionPane.ERROR_MESSAGE);
-                        System.out.println("Login Gagal");
+        new SwingWorker<ConnectDB.AuthenticatedUser, Void>() {
+            @Override
+            protected ConnectDB.AuthenticatedUser doInBackground() throws Exception {
+                return new ConnectDB().authenticate(username, password);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    ConnectDB.AuthenticatedUser user = get();
+                    if (user == null) {
+                        restoreLoginForm();
+                        JOptionPane.showMessageDialog(LoginMini.this,
+                                "Username atau password salah.", "Login gagal",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
                     }
-                } catch (Exception ex) {
-                    System.out.println(ex.getMessage());
+
+                    openDashboard(user);
+                    dispose();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    showLoginError(ex);
+                } catch (ExecutionException ex) {
+                    showLoginError(ex.getCause() == null ? ex : ex.getCause());
+                } catch (Throwable ex) {
+                    showLoginError(ex);
                 }
             }
-        }, 5 * 5);
+        }.execute();
+    }
+
+    private void openDashboard(ConnectDB.AuthenticatedUser user) {
+        if ("Admin".equalsIgnoreCase(user.akses)) {
+            MenuAdmin admin = new MenuAdmin();
+            lbl_NamaUser1.setText(user.username);
+            admin.setVisible(true);
+            return;
+        }
+
+        if (!"User".equalsIgnoreCase(user.akses)) {
+            throw new IllegalStateException("Hak akses akun tidak dikenali: " + user.akses);
+        }
+
+        MenuUser menuUser = new MenuUser();
+        NamaUser2.setText(valueOrEmpty(user.namaLengkap));
+        MenuUser.txtIdCust.setText(valueOrEmpty(user.idCust));
+        MenuUser.txtNoKTP.setText(valueOrEmpty(user.noKtp));
+        MenuUser.txtNoKTP.setEnabled(false);
+        MenuUser.nm_lengkap.setText(valueOrEmpty(user.namaLengkap));
+        MenuUser.nm_lengkap.setEnabled(false);
+        MenuUser.txtAlamat.setText(valueOrEmpty(user.alamat));
+        MenuUser.txtAlamat.setEnabled(true);
+        MenuUser.txtJenisKelamin.setText(valueOrEmpty(user.jenisKelamin));
+        MenuUser.txtJenisKelamin.setEnabled(false);
+        MenuUser.txtNoHP.setText(valueOrEmpty(user.noHpPribadi));
+        MenuUser.txtNoHP.setEnabled(true);
+        MenuUser.txtNoDarurat.setText(valueOrEmpty(user.noHpDarurat));
+        MenuUser.txtNoDarurat.setEnabled(true);
+        menuUser.setVisible(true);
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void restoreLoginForm() {
+        loginInProgress = false;
+        loader.setVisible(false);
+        loader.setEnabled(false);
+        LoginMini.setVisible(true);
+        LoginMini.setEnabled(true);
+    }
+
+    private void showLoginError(Throwable error) {
+        Logger.getLogger(LoginMini.class.getName()).log(Level.SEVERE, "Proses login gagal", error);
+        restoreLoginForm();
+        String detail = error.getMessage();
+        if (detail == null || detail.trim().isEmpty()) {
+            detail = error.getClass().getSimpleName();
+        }
+        JOptionPane.showMessageDialog(this,
+                "Login tidak dapat diselesaikan.\n" + detail,
+                "Kesalahan login", JOptionPane.ERROR_MESSAGE);
     }
 
     

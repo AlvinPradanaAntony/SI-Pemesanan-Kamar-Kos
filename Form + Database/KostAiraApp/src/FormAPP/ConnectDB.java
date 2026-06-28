@@ -41,6 +41,7 @@ public class ConnectDB {
     PreparedStatement pst;
     ResultSet rs; //---> untuk menyimpan hasil proses query kedalam database
     Statement st; //---> untuk mngeksekusi query
+    private SQLException connectionError;
 
     public ConnectDB() {
         try {
@@ -63,10 +64,74 @@ public class ConnectDB {
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
-            System.out.println(ex.getMessage());
-//            Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
+            connectionError = ex;
+            Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, "Koneksi database gagal", ex);
         } catch (Exception ex) {
             Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public AuthenticatedUser authenticate(String username, String password) throws SQLException {
+        if (con == null) {
+            if (connectionError != null) {
+                throw new SQLException("Tidak dapat terhubung ke database: " + connectionError.getMessage(), connectionError);
+            }
+            throw new SQLException("Tidak dapat terhubung ke database.");
+        }
+
+        String sql = "SELECT l.username, l.akses, p.id_cust, p.NoKTP, p.NamaLengkap, "
+                + "p.Alamat, p.JenisKelamin, p.NoHpPribadi, p.NoHpDarurat "
+                + "FROM login_user l LEFT JOIN pelanggan p ON p.id_cust = l.id_cust "
+                + "WHERE l.username = ? AND l.password = ? LIMIT 1";
+
+        try (PreparedStatement statement = con.prepareStatement(sql)) {
+            statement.setString(1, username);
+            statement.setString(2, password);
+
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next()) {
+                    return null;
+                }
+
+                return new AuthenticatedUser(
+                        result.getString("username"),
+                        result.getString("akses"),
+                        result.getString("id_cust"),
+                        result.getString("NoKTP"),
+                        result.getString("NamaLengkap"),
+                        result.getString("Alamat"),
+                        result.getString("JenisKelamin"),
+                        result.getString("NoHpPribadi"),
+                        result.getString("NoHpDarurat")
+                );
+            }
+        }
+    }
+
+    public static final class AuthenticatedUser {
+
+        public final String username;
+        public final String akses;
+        public final String idCust;
+        public final String noKtp;
+        public final String namaLengkap;
+        public final String alamat;
+        public final String jenisKelamin;
+        public final String noHpPribadi;
+        public final String noHpDarurat;
+
+        private AuthenticatedUser(String username, String akses, String idCust, String noKtp,
+                String namaLengkap, String alamat, String jenisKelamin,
+                String noHpPribadi, String noHpDarurat) {
+            this.username = username;
+            this.akses = akses;
+            this.idCust = idCust;
+            this.noKtp = noKtp;
+            this.namaLengkap = namaLengkap;
+            this.alamat = alamat;
+            this.jenisKelamin = jenisKelamin;
+            this.noHpPribadi = noHpPribadi;
+            this.noHpDarurat = noHpDarurat;
         }
     }
 

@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Versi build tanpa awalan v, misalnya 1.0.0"
+        description: "Versi build tanpa awalan v, misalnya 1.0.1"
         required: false
-        default: "1.0.0"
+        default: "1.0.1"
   push:
     branches:
       - main
@@ -17,6 +17,7 @@ on:
       - "Form + Database/Backup Database/kostaira.sql"
       - "scripts/build-portable.ps1"
       - "PORTABLE.md"
+      - "CHANGELOG.md"
       - ".github/workflows/build-multiplatform-release.yml"
 
 permissions:
@@ -25,11 +26,11 @@ permissions:
 jobs:
   extract-changelog:
     name: 📋 Extract Changelog
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
-      release_notes: ${{ steps.changelog.outputs.release_notes }}
       version: ${{ steps.version.outputs.version }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,9 +38,15 @@ jobs:
       - name: Get version dari tag
         id: version
         run: |
-          # Ambil versi tanpa prefix 'v' (misal: v1.0.0 -> 1.0.0)
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Version: $VERSION"
 
       - name: Validasi versi release
@@ -55,7 +62,7 @@ jobs:
             exit 1
           fi
 
-          echo "✅ Versi tag $GITHUB_REF_NAME tersedia di CHANGELOG.md"
+          echo "✅ Versi $VERSION tersedia di CHANGELOG.md"
 
       - name: Ekstrak release notes dari CHANGELOG.md
         id: changelog
@@ -84,7 +91,23 @@ jobs:
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           echo "$NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
+          {
+            echo "## 📋 Apa yang Baru di v$VERSION?"
+            echo
+            echo "$NOTES"
+            echo
+            echo "---"
+          } > release-notes.md
+
           echo "✅ Release notes berhasil diekstrak"
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
 
   build:
     name: Build ${{ matrix.platform }}
@@ -188,7 +211,7 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs:
       - extract-changelog
       - build
@@ -199,7 +222,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+          pattern: KostAiraApp-*
           merge-multiple: true
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes
 
       - name: Generate SHA-256 checksums
         run: |
@@ -207,19 +237,16 @@ jobs:
           sha256sum KostAiraApp-* > SHA256SUMS.txt
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          GH_TAG: ${{ github.ref_name }}
         with:
-          tag_name: ${{ github.ref_name }}
-          name: KostAiraApp ${{ github.ref_name }}
-          body: |
-            ## 📋 Apa yang Baru di ${{ env.GH_TAG }}?
-
-            ${{ needs.extract-changelog.outputs.release_notes }}
-
-            ---
-          files: release-assets/*
+          tag_name: ${{ needs.extract-changelog.outputs.tag_name }}
+          name: KostAiraApp ${{ needs.extract-changelog.outputs.tag_name }}
+          body_path: release-notes/release-notes.md
+          generate_release_notes: false
+          files: |
+            release-assets/KostAiraApp-*
+            release-assets/SHA256SUMS.txt
           fail_on_unmatched_files: true

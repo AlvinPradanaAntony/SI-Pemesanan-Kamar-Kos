@@ -2,7 +2,7 @@
 param(
     [string]$ProjectDirectory = "Form + Database/KostAiraApp",
     [string]$OutputDirectory = "artifacts",
-    [string]$Version = "1.0.0"
+    [string]$Version = "1.0.1"
 )
 
 $ErrorActionPreference = "Stop"

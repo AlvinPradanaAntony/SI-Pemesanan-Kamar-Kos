@@ -67,7 +67,7 @@ KostAiraApp-vX.Y.Z-macOS-x64.dmg
 SHA256SUMS.txt
 ```
 
-Build biasa dapat diunduh melalui tab **Actions**. Push tag seperti `v1.0.0`
+Build biasa dapat diunduh melalui tab **Actions**. Push tag seperti `v1.0.1`
 akan membuat satu GitHub Release dan melampirkan ketiga paket tersebut.
 
 Catatan: format satu file ini adalah paket native yang memasang aplikasi beserta
