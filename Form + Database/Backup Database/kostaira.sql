@@ -86,24 +86,25 @@ INSERT INTO `kamar` (`kode_kamar`, `lokasi_kamar`, `Kjenis_Kamar`, `dsc_fasilita
 
 CREATE TABLE `login_user` (
   `id_user` char(10) NOT NULL,
+  `id_cust` char(6) DEFAULT NULL,
   `username` varchar(25) NOT NULL,
-  `password` varchar(16) NOT NULL,
-  `akses` varchar(10) NOT NULL
+  `password` varchar(255) NOT NULL,
+  `akses` enum('Admin','User') NOT NULL DEFAULT 'User'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `login_user`
 --
 
-INSERT INTO `login_user` (`id_user`, `username`, `password`, `akses`) VALUES
-('U001', 'admin', 'admin', 'Admin'),
-('U002', 'dewi', '123', 'User'),
-('U003', 'ila', '123', 'User'),
-('U004', 'elisa', '123', 'User'),
-('U005', 'rera', '123', 'User'),
-('U006', 'coba', '123', 'User'),
-('U007', 'no_vitri', '12345', 'Admin'),
-('U008', 'coba3', '123', 'User');
+INSERT INTO `login_user` (`id_user`, `id_cust`, `username`, `password`, `akses`) VALUES
+('U001', NULL, 'admin', 'admin', 'Admin'),
+('U002', 'C001', 'dewi', '123', 'User'),
+('U003', 'C002', 'ila', '123', 'User'),
+('U004', 'C003', 'elisa', '123', 'User'),
+('U005', 'C004', 'rera', '123', 'User'),
+('U006', 'C005', 'coba', '123', 'User'),
+('U007', 'C006', 'no_vitri', '12345', 'Admin'),
+('U008', 'C007', 'coba3', '123', 'User');
 
 -- --------------------------------------------------------
 
@@ -126,14 +127,13 @@ CREATE TABLE `pelanggan` (
 --
 
 INSERT INTO `pelanggan` (`id_cust`, `NoKTP`, `NamaLengkap`, `JenisKelamin`, `Alamat`, `NoHpPribadi`, `NoHpDarurat`) VALUES
-('U001', '-', '-', NULL, '-', '-', '-'),
-('U002', '35892018218267', 'Yuliana Dewi', 'Perempuan', 'Nganjuk', '087710929122', '0881289220016'),
-('U003', '350919827192982', 'Annisa Laila Rahmawati', 'Perempuan', 'Jember', '087720012918', '082211092451'),
-('U004', '3569194471921561', 'Dwi Elisa', 'Perempuan', 'Jember', '087387191333', '088128923891'),
-('U005', '332111031005002', 'Rera ', 'Perempuan', 'Nganjuk', '08771093132', '08987891231'),
-('U006', '38689162781', 'Uji Coba', 'Perempuan', 'Jakarta', '0828019821', '0892182120'),
-('U007', '3586938574810223', 'Novita Putri', 'Perempuan', 'Jl. Nangka', '80193129381', '1421344312'),
-('U008', '8628368126', 'coba3', 'Perempuan', 'Jember', '0989178931', '0890137813');
+('C001', '35892018218267', 'Yuliana Dewi', 'Perempuan', 'Nganjuk', '087710929122', '0881289220016'),
+('C002', '350919827192982', 'Annisa Laila Rahmawati', 'Perempuan', 'Jember', '087720012918', '082211092451'),
+('C003', '3569194471921561', 'Dwi Elisa', 'Perempuan', 'Jember', '087387191333', '088128923891'),
+('C004', '332111031005002', 'Rera ', 'Perempuan', 'Nganjuk', '08771093132', '08987891231'),
+('C005', '38689162781', 'Uji Coba', 'Perempuan', 'Jakarta', '0828019821', '0892182120'),
+('C006', '3586938574810223', 'Novita Putri', 'Perempuan', 'Jl. Nangka', '80193129381', '1421344312'),
+('C007', '8628368126', 'coba3', 'Perempuan', 'Jember', '0989178931', '0890137813');
 
 -- --------------------------------------------------------
 
@@ -157,9 +157,9 @@ CREATE TABLE `pemesanan` (
 --
 
 INSERT INTO `pemesanan` (`IdBooking`, `kode_kamar`, `id_cust`, `TglMasuk`, `TglKeluar`, `LamaSewa`, `TotalHarga`, `kode_pembayaran`) VALUES
-('B001', 'K001', 'U002', '2021-07-24', '2021-08-23', '30', '600000', '0410-01-000301-50-4'),
-('B002', 'K008', 'U008', '2021-07-28', '2021-10-23', '87', '1740000', '0410-01-000301-50-4'),
-('B003', 'K002', 'U005', '2021-05-12', '2021-11-24', '196', '3920000', '0410-01-000301-50-4');
+('B001', 'K001', 'C001', '2021-07-24', '2021-08-23', '30', '600000', '0410-01-000301-50-4'),
+('B002', 'K008', 'C007', '2021-07-28', '2021-10-23', '87', '1740000', '0410-01-000301-50-4'),
+('B003', 'K002', 'C004', '2021-05-12', '2021-11-24', '196', '3920000', '0410-01-000301-50-4');
 
 --
 -- Indexes for dumped tables
@@ -182,13 +182,16 @@ ALTER TABLE `kamar`
 -- Indexes for table `login_user`
 --
 ALTER TABLE `login_user`
-  ADD PRIMARY KEY (`id_user`);
+  ADD PRIMARY KEY (`id_user`),
+  ADD UNIQUE KEY `uq_login_user_username` (`username`),
+  ADD UNIQUE KEY `uq_login_user_id_cust` (`id_cust`);
 
 --
 -- Indexes for table `pelanggan`
 --
 ALTER TABLE `pelanggan`
-  ADD PRIMARY KEY (`id_cust`);
+  ADD PRIMARY KEY (`id_cust`),
+  ADD UNIQUE KEY `uq_pelanggan_no_ktp` (`NoKTP`);
 
 --
 -- Indexes for table `pemesanan`
@@ -207,6 +210,9 @@ ALTER TABLE `pemesanan`
 --
 ALTER TABLE `kamar`
   ADD CONSTRAINT `kamar_ibfk_1` FOREIGN KEY (`Kjenis_Kamar`) REFERENCES `jns_kamar` (`Kjenis_Kamar`);
+
+ALTER TABLE `login_user`
+  ADD CONSTRAINT `login_user_ibfk_1` FOREIGN KEY (`id_cust`) REFERENCES `pelanggan` (`id_cust`) ON UPDATE CASCADE ON DELETE CASCADE;
 
 --
 -- Constraints for table `pemesanan`

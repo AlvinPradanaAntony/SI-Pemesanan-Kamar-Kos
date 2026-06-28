@@ -217,14 +217,15 @@ public class ConnectDB {
         }
     }
 
-    public void insertDB(String id_user, String username, String password, String akses) {
+    public void insertDB(String id_user, String id_cust, String username, String password, String akses) {
         try {
-            String sql = "insert into login_user values (?,?,?,?)";
+            String sql = "insert into login_user (id_user, id_cust, username, password, akses) values (?,?,?,?,?)";
             pst = con.prepareStatement(sql);
             pst.setString(1, id_user);
-            pst.setString(2, username);
-            pst.setString(3, password);
-            pst.setString(4, akses);
+            pst.setString(2, id_cust);
+            pst.setString(3, username);
+            pst.setString(4, password);
+            pst.setString(5, akses);
             pst.executeUpdate();
         } catch (SQLException ex) {
             Logger.getLogger(ConnectDB.class.getName()).log(Level.SEVERE, null, ex);
@@ -330,7 +331,7 @@ public class ConnectDB {
 
     public ResultSet selectDB(String id_user) {
         try {
-            String sql = "select id_user from login_user";
+            String sql = "select id_user from login_user order by cast(substring(id_user, 2) as unsigned) desc limit 1";
             st = con.createStatement();
             rs = st.executeQuery(sql);
         } catch (SQLException ex) {
@@ -352,7 +353,7 @@ public class ConnectDB {
 
     public ResultSet selectDB1(String id_cust) {
         try {
-            String sql = "select id_cust from pelanggan";
+            String sql = "select id_cust from pelanggan order by cast(substring(id_cust, 2) as unsigned) desc limit 1";
             st = con.createStatement();
             rs = st.executeQuery(sql);
         } catch (SQLException ex) {
@@ -397,8 +398,8 @@ public class ConnectDB {
 
     public ResultSet selectDB5(String cari) {
         try {
-            String sql = "SELECT id_cust, NoKTP,  NamaLengkap, Alamat, JenisKelamin, NoHpPribadi, NoHpDarurat, id_user, login_user.username, login_user.password, akses From pelanggan "
-                    + "INNER JOIN login_user ON pelanggan.id_cust=login_user.id_user where id_cust LIKE '%" + cari
+            String sql = "SELECT pelanggan.id_cust, NoKTP, NamaLengkap, Alamat, JenisKelamin, NoHpPribadi, NoHpDarurat, id_user, login_user.username, login_user.password, akses From pelanggan "
+                    + "INNER JOIN login_user ON pelanggan.id_cust=login_user.id_cust where pelanggan.id_cust LIKE '%" + cari
                     + "%' OR NamaLengkap LIKE '%" + cari + "%'";
             st = con.createStatement();
             rs = st.executeQuery(sql);
@@ -483,8 +484,8 @@ public class ConnectDB {
 
     public ResultSet slctDB() {
         try {
-            String sql = "SELECT id_cust, NoKTP,  NamaLengkap, Alamat, JenisKelamin, NoHpPribadi, NoHpDarurat, id_user, login_user.username, login_user.password, akses From pelanggan "
-                    + "INNER JOIN login_user ON pelanggan.id_cust=login_user.id_user ORDER BY id_cust ASC";
+            String sql = "SELECT pelanggan.id_cust, NoKTP, NamaLengkap, Alamat, JenisKelamin, NoHpPribadi, NoHpDarurat, id_user, login_user.username, login_user.password, akses From pelanggan "
+                    + "INNER JOIN login_user ON pelanggan.id_cust=login_user.id_cust ORDER BY pelanggan.id_cust ASC";
             st = con.createStatement();
             rs = st.executeQuery(sql);
         } catch (SQLException ex) {
@@ -506,7 +507,7 @@ public class ConnectDB {
 
     public ResultSet gabungDB(String username) {
         try {
-            String sql = "SELECT * From pelanggan INNER JOIN login_user ON pelanggan.id_cust=login_user.id_user WHERE login_user.username='" + username + "'";
+            String sql = "SELECT * From pelanggan INNER JOIN login_user ON pelanggan.id_cust=login_user.id_cust WHERE login_user.username='" + username + "'";
             st = con.createStatement();
             rs = st.executeQuery(sql);
         } catch (SQLException ex) {

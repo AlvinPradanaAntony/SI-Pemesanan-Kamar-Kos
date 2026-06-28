@@ -377,8 +377,7 @@ public class MenuAdmin extends javax.swing.JFrame {
             }
             id_user = id_user.substring(1);
             i = Integer.parseInt(id_user) + 1;
-            id_user = "00" + i;
-            id_user = "U0" + id_user.substring(id_user.length() - 2);
+            id_user = String.format("U%03d", i);
             f1.setText(id_user);
 
         } catch (Exception e) {
@@ -432,7 +431,7 @@ public class MenuAdmin extends javax.swing.JFrame {
     }
 
     private void autoNumber() {
-        String id_cust = "U0";
+        String id_cust = "C0";
         int i = 0;
         try {
             ConnectDB konek = new ConnectDB();
@@ -443,8 +442,7 @@ public class MenuAdmin extends javax.swing.JFrame {
             }
             id_cust = id_cust.substring(1);
             i = Integer.parseInt(id_cust) + 1;
-            id_cust = "00" + i;
-            id_cust = "U0" + id_cust.substring(id_cust.length() - 2);
+            id_cust = String.format("C%03d", i);
             txtCust.setText(id_cust);
 
         } catch (Exception e) {
@@ -3261,7 +3259,7 @@ public class MenuAdmin extends javax.swing.JFrame {
 
             ConnectDB konek = new ConnectDB();
             konek.insertDB(id_cust, noktp, nama, jeniskelamin, alamat, nohppribadi, nohpdarurat);
-            konek.insertDB(id_user, username, password, akses);
+            konek.insertDB(id_user, id_cust, username, password, akses);
 
             JOptionPane.showMessageDialog(rootPane, "Tambah Data Pelanggan Sukses!!!");
             resetForm();

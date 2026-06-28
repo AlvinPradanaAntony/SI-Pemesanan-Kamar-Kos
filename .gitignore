@@ -1,5 +1,7 @@
-/Form + Database/KostAiraApp/dist/
-/Form + Database/KostAiraApp/db.properties
+Form + Database/KostAiraApp/dist/
+Form + Database/KostAiraApp/db.properties
 /.portable-build/
 /artifacts/
 Form + Database/Backup Database/ca.pem
+Form + Database/KostAiraApp/build/
+Form + Database/KostAiraApp/ca.pem

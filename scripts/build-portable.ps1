@@ -35,18 +35,41 @@ if ($normalizedVersion -notmatch "^\d+(\.\d+){0,2}$") {
     throw "Versi '$Version' tidak valid untuk jpackage. Gunakan format seperti 1.0.0."
 }
 
+# ============================================================
+# Section: Windows build
+# Output:
+# - Installer Windows .exe
+# - Membutuhkan jpackage dari JDK 17+
+# - Di GitHub Actions, workflow menginstall WiX Toolset lebih dulu
+# ============================================================
 if ($IsWindows) {
     $platformName = "Windows"
     $architecture = "x64"
     $classpathSeparator = ";"
     $packageType = "exe"
     $packageExtension = ".exe"
+
+# ============================================================
+# Section: macOS build
+# Output:
+# - Installer macOS .dmg
+# - Dibuild di runner macOS karena jpackage membuat paket native
+# - Arsitektur mengikuti runner: x64 atau arm64
+# ============================================================
 } elseif ($IsMacOS) {
     $platformName = "macOS"
     $architecture = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "x64" }
     $classpathSeparator = ":"
     $packageType = "dmg"
     $packageExtension = ".dmg"
+
+# ============================================================
+# Section: Linux build
+# Output:
+# - Paket Linux .deb
+# - Membutuhkan fakeroot di GitHub Actions untuk packaging .deb
+# - Target saat ini Linux x64
+# ============================================================
 } elseif ($IsLinux) {
     $platformName = "Linux"
     $architecture = "x64"
@@ -143,14 +166,30 @@ $jpackageArguments = @(
     "--java-options", "-Dfile.encoding=UTF-8"
 )
 
+# ============================================================
+# Section: Windows jpackage options
+# - Menambahkan pilihan folder instalasi
+# - Menambahkan shortcut Start Menu dan Desktop
+# ============================================================
 if ($IsWindows) {
     $jpackageArguments += @("--win-dir-chooser", "--win-menu", "--win-shortcut")
+
+# ============================================================
+# Section: Linux jpackage options
+# - Menentukan nama package Debian
+# - Menambahkan menu group dan shortcut launcher
+# ============================================================
 } elseif ($IsLinux) {
     $jpackageArguments += @(
         "--linux-package-name", "kostairaapp",
         "--linux-menu-group", "Office",
         "--linux-shortcut"
     )
+
+# ============================================================
+# Section: macOS jpackage options
+# - Menentukan nama package/app macOS
+# ============================================================
 } elseif ($IsMacOS) {
     $jpackageArguments += @("--mac-package-name", "KostAiraApp")
 }
