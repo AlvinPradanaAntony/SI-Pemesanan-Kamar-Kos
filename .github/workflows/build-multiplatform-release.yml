@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Versi build tanpa awalan v, misalnya 1.0.1"
+        description: "Versi build tanpa awalan v, misalnya 1.0.2"
         required: false
-        default: "1.0.1"
+        default: "1.0.2"
   push:
     branches:
       - main

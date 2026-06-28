@@ -58,24 +58,34 @@ public class Login extends javax.swing.JFrame {
         loader.setVisible(true);
         loader.setEnabled(true);
 
-        new SwingWorker<ConnectDB.AuthenticatedUser, Void>() {
+        new SwingWorker<PreparedLogin, Void>() {
             @Override
-            protected ConnectDB.AuthenticatedUser doInBackground() throws Exception {
-                return new ConnectDB().authenticate(username, password);
+            protected PreparedLogin doInBackground() throws Exception {
+                ConnectDB.AuthenticatedUser user = new ConnectDB().authenticate(username, password);
+                if (user == null) {
+                    return new PreparedLogin(null, null, null);
+                }
+                if ("Admin".equalsIgnoreCase(user.akses)) {
+                    return new PreparedLogin(user, new MenuAdmin(), null);
+                }
+                if ("User".equalsIgnoreCase(user.akses)) {
+                    return new PreparedLogin(user, null, new MenuUser());
+                }
+                throw new IllegalStateException("Hak akses akun tidak dikenali: " + user.akses);
             }
 
             @Override
             protected void done() {
                 try {
-                    ConnectDB.AuthenticatedUser user = get();
-                    if (user == null) {
+                    PreparedLogin preparedLogin = get();
+                    if (preparedLogin.user == null) {
                         restoreLoginForm();
                         JOptionPane.showMessageDialog(Login.this,
                                 "Username atau password salah.", "Login gagal",
                                 JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                    openDashboard(user);
+                    openDashboard(preparedLogin);
                     dispose();
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
@@ -89,18 +99,14 @@ public class Login extends javax.swing.JFrame {
         }.execute();
     }
 
-    private void openDashboard(ConnectDB.AuthenticatedUser user) {
-        if ("Admin".equalsIgnoreCase(user.akses)) {
-            MenuAdmin admin = new MenuAdmin();
+    private void openDashboard(PreparedLogin preparedLogin) {
+        ConnectDB.AuthenticatedUser user = preparedLogin.user;
+        if (preparedLogin.admin != null) {
             lbl_NamaUser1.setText(user.username);
-            admin.setVisible(true);
+            preparedLogin.admin.setVisible(true);
             return;
         }
-        if (!"User".equalsIgnoreCase(user.akses)) {
-            throw new IllegalStateException("Hak akses akun tidak dikenali: " + user.akses);
-        }
 
-        MenuUser menuUser = new MenuUser();
         NamaUser2.setText(valueOrEmpty(user.namaLengkap));
         MenuUser.txtIdCust.setText(valueOrEmpty(user.idCust));
         MenuUser.txtNoKTP.setText(valueOrEmpty(user.noKtp));
@@ -115,7 +121,20 @@ public class Login extends javax.swing.JFrame {
         MenuUser.txtJenisKelamin.setEnabled(false);
         MenuUser.txtNoHP.setEnabled(false);
         MenuUser.txtNoDarurat.setEnabled(false);
-        menuUser.setVisible(true);
+        preparedLogin.menuUser.setVisible(true);
+    }
+
+    private static final class PreparedLogin {
+
+        private final ConnectDB.AuthenticatedUser user;
+        private final MenuAdmin admin;
+        private final MenuUser menuUser;
+
+        private PreparedLogin(ConnectDB.AuthenticatedUser user, MenuAdmin admin, MenuUser menuUser) {
+            this.user = user;
+            this.admin = admin;
+            this.menuUser = menuUser;
+        }
     }
 
     private String valueOrEmpty(String value) {

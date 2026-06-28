@@ -8,6 +8,15 @@ dan pemesanan kamar kos secara online maupun langsung oleh pengelola.
 
 ---
 
+## [1.0.2] - 2026-06-29
+
+### Fixed
+
+- Menyiapkan dashboard pengguna atau administrator di background agar animasi
+  loader tetap berjalan sampai menu siap ditampilkan.
+
+---
+
 ## [1.0.1] - 2026-06-28
 
 ### Fixed
